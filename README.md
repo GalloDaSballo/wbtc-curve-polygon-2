@@ -1,37 +1,50 @@
-# Badger Strategy V1 Brownie Mix
+# Polygon Curve wBTC-renBTC Liquidity Pool Yield Strategy
 
-- Video Introduction: https://youtu.be/FVbhgPYW_D0
+This Polygon network strategy takes Curve's wBTC-renBTC liquidity pool tokens as deposit and stakes it on Curve for yield. The rewards are in WMATIC and CRV, which is swapped to wBTC and added to wBTC-renBTC liquidity pool. 
 
-- Example Project: https://github.com/Badger-Finance/wBTC-AAVE-Rewards-Farm-Badger-V1-Strategy
-- Full Project Walkthrough: https://www.youtube.com/watch?v=lTb0RFJJx2k
-- 1-1 Mentoring (Valid throughout HackMoney and Gitcoin Round 10): https://calendly.com/alex-entreprenerd/badger-hackmoney-1-1
+## Deposit
+Deposit wBTC-renBTC liquidity pool tokens in Curve's gauge, so that we earn interest as well as rewards in WMATIC and CRV.
 
-## What you'll find here
+## Tend
+If there's any wBTC-renBTC in the strategy, it will be deposited in the pool.
 
-- Basic Solidity Smart Contract for creating your own Badger Strategy ([`contracts/MyStrategy.sol`](contracts/MyStrategy.sol))
+## Harvest
+The Strategy will harvest WMATIC and CRV, then swap it into wBTC, which is then added to Curve's wBTC-renBTC liquidity pool. 
 
-- Interfaces for some of the most used DeFi protocols on ethereum mainnet. ([`interfaces`](interfaces))
-- Dependencies for OpenZeppelin and other libraries. ([`deps`](deps))
+In further detail:
+If no reward, then do nothing.
+If WMATIC reward is available, swap WMATIC to WETH.
+If CRV reward is available, swap CRV to DAI to WETH.
+Finally, swap WETH to WBTC and add to Curve's wBTC-renBTC liquidity pool
 
-- Sample test suite that runs on mainnet fork. ([`tests`](tests))
 
-This mix is configured for use with [Ganache](https://github.com/trufflesuite/ganache-cli) on a [forked mainnet](https://eth-brownie.readthedocs.io/en/stable/network-management.html#using-a-forked-development-network).
+// Swap CRV to DAI to WETH
+
+## Expected Yield as of July 7th, 2021
+
+BASE:   0.72%
+CRV:    3.88%
+WMATIC: 3.60%
+
+Total:  8.20%
+
+
 
 ## Installation and Setup
 
-1. Use this code by clicking on Use This Template
+This mix is configured for use with [Ganache](https://github.com/trufflesuite/ganache-cli) on a [forked mainnet](https://eth-brownie.readthedocs.io/en/stable/network-management.html#using-a-forked-development-network).
 
-2. Download the code with ```git clone URL_FROM_GITHUB```
+1. Download the code with ```git clone URL_FROM_GITHUB```
 
-3. [Install Brownie](https://eth-brownie.readthedocs.io/en/stable/install.html) & [Ganache-CLI](https://github.com/trufflesuite/ganache-cli), if you haven't already.
+2. [Install Brownie](https://eth-brownie.readthedocs.io/en/stable/install.html) & [Ganache-CLI](https://github.com/trufflesuite/ganache-cli), if you haven't already.
 
-4. Copy the `.env.example` file, and rename it to `.env`
+3. Copy the `.env.example` file, and rename it to `.env`
 
-5. Sign up for [Infura](https://infura.io/) and generate an API key. Store it in the `WEB3_INFURA_PROJECT_ID` environment variable.
+4. Sign up for [Infura](https://infura.io/) and generate an API key. Store it in the `WEB3_INFURA_PROJECT_ID` environment variable.
 
-6. Sign up for [Etherscan](www.etherscan.io) and generate an API key. This is required for fetching source codes of the mainnet contracts we will be interacting with. Store the API key in the `ETHERSCAN_TOKEN` environment variable.
+5. Sign up for [Etherscan](www.etherscan.io) and generate an API key. This is required for fetching source codes of the mainnet contracts we will be interacting with. Store the API key in the `ETHERSCAN_TOKEN` environment variable.
 
-7. Install the dependencies in the package
+6. Install the dependencies in the package
 ```
 ## Javascript dependencies
 npm i
@@ -42,6 +55,13 @@ virtualenv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+7. Add Polygon to your local brownie networks:
+```
+brownie networks import network-config.yaml
+```
+
+
 
 ## Basic Use
 

@@ -11,6 +11,8 @@ import "../deps/@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgrade
 
 import "../interfaces/badger/IController.sol";
 
+import "../interfaces/curve/ICurve.sol";
+import "../interfaces/uniswap/IUniswapRouterV2.sol";
 
 import {
     BaseStrategy
@@ -24,6 +26,25 @@ contract MyStrategy is BaseStrategy {
     // address public want // Inherited from BaseStrategy, the token the strategy wants, swaps into and tries to grow
     address public lpComponent; // Token we provide liquidity with
     address public reward; // Token we farm and swap to want / lpComponent
+
+    address public reward_crv; // Token we farm and swap to want
+    address public reward_wmatic; // Token we farm and swap to want
+
+    address public constant wETH_TOKEN = 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619;
+    address public constant renBTC_TOKEN = 0xDBf31dF14B66535aF65AaC99C32e9eA844e14501;
+    address public constant wBTC_TOKEN = 0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6;
+    address public constant CRV_TOKEN = 0x172370d5Cd63279eFa6d502DAB29171933a610AF;
+    address public constant DAI_TOKEN = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
+
+
+    // curve interface contracts
+    address public constant CURVE_RENBTC_POOL = 0xC2d95EEF97Ec6C17551d45e77B590dc1F9117C67;
+    // address public constant CURVE_RENBTC_LP_TOKEN = 0xf8a57c1d3b9629b77b6726a042ca48990A84Fb49; // want
+    // to retrieve both CRV & WMATIC rewards
+    address public constant CURVE_RENBTC_REWARD_CLAIMER = 0xe89BC681C5cb6A3499E9dB97e0CE8558877Dd1A4;
+    address public constant CURVE_RENBTC_GAUGE = 0xffbACcE0CC7C19d46132f1258FC16CF6871D153c; // this is pool & deposit token
+
+    address public constant QUICKSWAP_ROUTER = 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff;
 
     function initialize(
         address _governance,
@@ -41,19 +62,27 @@ contract MyStrategy is BaseStrategy {
         lpComponent = _wantConfig[1];
         reward = _wantConfig[2];
 
+
         performanceFeeGovernance = _feeConfig[0];
         performanceFeeStrategist = _feeConfig[1];
         withdrawalFee = _feeConfig[2];
 
         /// @dev do one off approvals here
-        // IERC20Upgradeable(want).safeApprove(gauge, type(uint256).max);
+        IERC20Upgradeable(want).safeApprove(CURVE_RENBTC_GAUGE, type(uint256).max);
+        IERC20Upgradeable(want).safeApprove(CURVE_RENBTC_POOL, type(uint256).max);
+        IERC20Upgradeable(wBTC_TOKEN).safeApprove(CURVE_RENBTC_POOL, type(uint256).max);
+
+        IERC20Upgradeable(reward).safeApprove(QUICKSWAP_ROUTER, type(uint256).max);
+        IERC20Upgradeable(CRV_TOKEN).safeApprove(QUICKSWAP_ROUTER, type(uint256).max);
+        IERC20Upgradeable(wETH_TOKEN).safeApprove(QUICKSWAP_ROUTER, type(uint256).max);
+
     }
 
     /// ===== View Functions =====
 
     // @dev Specify the name of the strategy
     function getName() external override pure returns (string memory) {
-        return "StrategyName";
+        return "wBTC-renBTC-Curve-Polygon-Rewards";
     }
 
     // @dev Specify the version of the Strategy, for upgrades
@@ -63,14 +92,15 @@ contract MyStrategy is BaseStrategy {
 
     /// @dev Balance of want currently held in strategy positions
     function balanceOfPool() public override view returns (uint256) {
-        return 0;
+        return IERC20Upgradeable(CURVE_RENBTC_GAUGE).balanceOf(address(this));
     }
     
     /// @dev Returns true if this strategy requires tending
     function isTendable() public override view returns (bool) {
-        return true;
+        return balanceOfWant() > 0;
     }
 
+    // TODO: update lpcomponent
     // @dev These are the tokens that cannot be moved except by the vault
     function getProtectedTokens() public override view returns (address[] memory) {
         address[] memory protectedTokens = new address[](3);
@@ -102,13 +132,20 @@ contract MyStrategy is BaseStrategy {
     /// @notice When this function is called, the controller has already sent want to this
     /// @notice Just get the current balance and then invest accordingly
     function _deposit(uint256 _amount) internal override {
+        ICurveGauge(CURVE_RENBTC_GAUGE).deposit(_amount);
     }
 
     /// @dev utility function to withdraw everything for migration
     function _withdrawAll() internal override {
+        ICurveGauge(CURVE_RENBTC_GAUGE).withdraw(balanceOfPool());
     }
     /// @dev withdraw the specified amount of want, liquidate from lpComponent to want, paying off any necessary debt for the conversion
     function _withdrawSome(uint256 _amount) internal override returns (uint256) {
+        if(_amount > balanceOfPool()) {
+            _amount = balanceOfPool();
+        }
+
+        ICurveGauge(CURVE_RENBTC_GAUGE).withdraw(_amount);
 
         return _amount;
     }
@@ -117,11 +154,51 @@ contract MyStrategy is BaseStrategy {
     function harvest() external whenNotPaused returns (uint256 harvested) {
         _onlyAuthorizedActors();
 
-
         uint256 _before = IERC20Upgradeable(want).balanceOf(address(this));
 
-        // Write your code here 
+        // figure out and claim our rewards
+        ICurveGauge(CURVE_RENBTC_GAUGE).claim_rewards();
 
+        // Get total rewards (WMATIC & CRV)
+        uint256 rewardsAmount = IERC20Upgradeable(reward).balanceOf(address(this));
+        uint256 crvAmount = IERC20Upgradeable(CRV_TOKEN).balanceOf(address(this));
+        
+        // If no reward, then no-op
+        if (rewardsAmount == 0 && crvAmount == 0) {
+            return 0;
+        }
+
+        // We want to swap rewards (WMATIC & CRV) to WBTC and then add liquidity to wBTC-renBTC pool by depositing wBTC
+
+        // Swap WMATIC to WETH
+        if (rewardsAmount > 0) {
+            address[] memory path = new address[](2);
+            path[0] = reward; 
+            path[1] = wETH_TOKEN;
+            IUniswapRouterV2(QUICKSWAP_ROUTER).swapExactTokensForTokens(rewardsAmount, 0, path, address(this), now);
+        }
+
+        // Swap CRV to DAI to WETH
+        if (crvAmount > 0) {
+            address[] memory path = new address[](3);
+            path[0] = CRV_TOKEN;
+            path[1] = DAI_TOKEN;
+            path[2] = wETH_TOKEN;
+            IUniswapRouterV2(QUICKSWAP_ROUTER).swapExactTokensForTokens(crvAmount, 0, path, address(this), now);
+        }
+
+        // Swap WETH to WBTC
+        uint256 wethAmount = IERC20Upgradeable(wETH_TOKEN).balanceOf(address(this));
+        address[] memory path = new address[](2);
+            path[0] = wETH_TOKEN;
+            path[1] = wBTC_TOKEN;
+            IUniswapRouterV2(QUICKSWAP_ROUTER).swapExactTokensForTokens(wethAmount, 0, path, address(this), now);
+
+
+        // Add liquidity for wBTC-renBTC pool by depositing wBTC
+        ICurveStableSwapREN(CURVE_RENBTC_POOL).add_liquidity(
+            [IERC20Upgradeable(wBTC_TOKEN).balanceOf(address(this)), 0], 0, true
+        );
 
         uint256 earned = IERC20Upgradeable(want).balanceOf(address(this)).sub(_before);
 
@@ -142,6 +219,10 @@ contract MyStrategy is BaseStrategy {
     /// @dev Rebalance, Compound or Pay off debt here
     function tend() external whenNotPaused {
         _onlyAuthorizedActors();
+
+        if(balanceOfWant() > 0) {
+            _deposit(balanceOfWant());
+        }
     }
 
 

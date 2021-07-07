@@ -15,6 +15,7 @@ import pytest
 @pytest.fixture
 def tokens():
   return [WANT, LP_COMPONENT, REWARD_TOKEN]
+  # return [WANT, REWARD_TOKEN]
 
 @pytest.fixture
 def deployed():

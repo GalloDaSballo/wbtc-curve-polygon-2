@@ -1,5 +1,11 @@
 # Polygon Curve wBTC-renBTC Liquidity Pool Yield Strategy
 
+## NOTE: TO TEST
+Import the fork network with tons of ETH
+```
+brownie networks import network-config.yaml
+```
+
 This Polygon network strategy takes Curve's wBTC-renBTC liquidity pool tokens as deposit and stakes it on Curve for yield. The rewards are in WMATIC and CRV, which is swapped to wBTC and added to wBTC-renBTC liquidity pool. 
 
 ## Deposit

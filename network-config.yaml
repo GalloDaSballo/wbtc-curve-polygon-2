@@ -1,6 +1,6 @@
 development:
   - name: Ganache-CLI (Polygon-Mainnet Fork)
-    id: polygon-main-fork
+    id: polygon-main-fork-2
     cmd: ganache-cli
     host: http://127.0.0.1
     timeout: 120
@@ -12,17 +12,3 @@ development:
       mnemonic: brownie
       fork: polygon-main
       default_balance: 100000 ether
-
-live:
-  - name: Polygon
-    networks:
-      - name: Mainnet
-        chainid: 137
-        id: polygon-main
-        host: https://polygon-mainnet.infura.io/v3/21317ddb5ded42ce8d40c7d78f90474f
-        explorer: https://api.polygonscan.com/api
-      - name: Mumbai Testnet
-        chainid: 80001
-        id: polygon-testnet
-        host: https://polygon-mumbai.infura.io/v3/21317ddb5ded42ce8d40c7d78f90474f
-        explorer: https://explorer-mumbai.maticvigil.com/

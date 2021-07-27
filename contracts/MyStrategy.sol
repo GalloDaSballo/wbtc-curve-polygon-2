@@ -23,7 +23,7 @@ contract MyStrategy is BaseStrategy {
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
 
-    event Harvest(uint256 harvested, uint256 crvAmount, uint256 indexed blockNumber);
+    event TreeDistribution(address indexed token, uint256 amount, uint256 indexed blockNumber, uint256 timestamp);
 
     // address public want // Inherited from BaseStrategy, the token the strategy wants, swaps into and tries to grow
     address public lpComponent; // Token we provide liquidity with
@@ -175,6 +175,7 @@ contract MyStrategy is BaseStrategy {
         // Send CRV rewards to BadgerTree
         if (crvAmount > 0) {
             IERC20Upgradeable(CRV_TOKEN).safeTransfer(badgerTree, crvAmount);
+            emit TreeDistribution(CRV_TOKEN, crvAmount, block.number, block.timestamp);
         }
 
         // We want to swap rewards (WMATIC) to WBTC and then add liquidity to wBTC-renBTC pool by depositing wBTC
@@ -206,7 +207,7 @@ contract MyStrategy is BaseStrategy {
         (uint256 governancePerformanceFee, uint256 strategistPerformanceFee) = _processPerformanceFees(earned);
 
         /// @dev Harvest event that every strategy MUST have, see BaseStrategy
-        emit Harvest(earned, crvAmount, block.number);
+        emit Harvest(earned, block.number);
 
         return earned;
     }

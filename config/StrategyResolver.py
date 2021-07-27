@@ -106,16 +106,27 @@ class StrategyResolver(StrategyCoreResolver):
     def confirm_harvest_state(self, before, after, tx):
         key = "Harvest"
         if key in tx.events:
-            assert len(tx.events[key]) == 1
             event = tx.events[key][0]
             keys = [
                 "harvested",
-                "crvAmount",
             ]
             for key in keys:
                 assert key in event
 
-            console.print("[blue]== harvest() State ==[/blue]")
+            console.print("[blue]== harvest() Harvest State ==[/blue]")
+            self.printState(event, keys)
+
+        key = "TreeDistribution"
+        if key in tx.events:
+            event = tx.events[key][0]
+            keys = [
+                "token",
+                "amount",
+            ]
+            for key in keys:
+                assert key in event
+
+            console.print("[blue]== harvest() TreeDistribution State ==[/blue]")
             self.printState(event, keys)
 
     def printState(self, event, keys):

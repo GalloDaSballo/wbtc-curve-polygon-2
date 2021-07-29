@@ -23,6 +23,8 @@ contract MyStrategy is BaseStrategy {
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
 
+    event TreeDistribution(address indexed token, uint256 amount, uint256 indexed blockNumber, uint256 timestamp);
+
     // address public want // Inherited from BaseStrategy, the token the strategy wants, swaps into and tries to grow
     address public lpComponent; // Token we provide liquidity with
     address public reward; // Token we farm and swap to want / lpComponent
@@ -45,6 +47,8 @@ contract MyStrategy is BaseStrategy {
     address public constant CURVE_RENBTC_GAUGE = 0xffbACcE0CC7C19d46132f1258FC16CF6871D153c; // this is pool & deposit token
 
     address public constant QUICKSWAP_ROUTER = 0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff;
+
+    address public constant badgerTree = 0x2C798FaFd37C7DCdcAc2498e19432898Bc51376b;
 
     function initialize(
         address _governance,
@@ -168,7 +172,13 @@ contract MyStrategy is BaseStrategy {
             return 0;
         }
 
-        // We want to swap rewards (WMATIC & CRV) to WBTC and then add liquidity to wBTC-renBTC pool by depositing wBTC
+        // Send CRV rewards to BadgerTree
+        if (crvAmount > 0) {
+            IERC20Upgradeable(CRV_TOKEN).safeTransfer(badgerTree, crvAmount);
+            emit TreeDistribution(CRV_TOKEN, crvAmount, block.number, block.timestamp);
+        }
+
+        // We want to swap rewards (WMATIC) to WBTC and then add liquidity to wBTC-renBTC pool by depositing wBTC
 
         // Swap WMATIC to WETH
         if (rewardsAmount > 0) {
@@ -176,15 +186,6 @@ contract MyStrategy is BaseStrategy {
             path[0] = reward; 
             path[1] = wETH_TOKEN;
             IUniswapRouterV2(QUICKSWAP_ROUTER).swapExactTokensForTokens(rewardsAmount, 0, path, address(this), now);
-        }
-
-        // Swap CRV to DAI to WETH
-        if (crvAmount > 0) {
-            address[] memory path = new address[](3);
-            path[0] = CRV_TOKEN;
-            path[1] = DAI_TOKEN;
-            path[2] = wETH_TOKEN;
-            IUniswapRouterV2(QUICKSWAP_ROUTER).swapExactTokensForTokens(crvAmount, 0, path, address(this), now);
         }
 
         // Swap WETH to WBTC

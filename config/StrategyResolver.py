@@ -1,5 +1,6 @@
 from helpers.StrategyCoreResolver import StrategyCoreResolver
 from rich.console import Console
+from brownie import interface
 
 console = Console()
 
@@ -80,3 +81,55 @@ class StrategyResolver(StrategyCoreResolver):
             "gauge": strategy.CURVE_RENBTC_GAUGE(),
             "pool": strategy.CURVE_RENBTC_POOL(),
         }   
+    
+    def add_entity_balances_for_tokens(self, calls, tokenKey, token, entities):
+        entities["CURVE_RENBTC_POOL"] = self.manager.strategy.CURVE_RENBTC_POOL()
+        entities["badgerTree"] = self.manager.strategy.badgerTree()
+
+        super().add_entity_balances_for_tokens(calls, tokenKey, token, entities)
+        return calls
+
+    def add_balances_snap(self, calls, entities):
+        super().add_balances_snap(calls, entities)
+        strategy = self.manager.strategy
+
+        crv = interface.IERC20(strategy.CRV_TOKEN())
+        wbtc = interface.IERC20(strategy.wBTC_TOKEN())
+        wMATIC = interface.IERC20("0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270")
+
+        calls = self.add_entity_balances_for_tokens(calls, "crv", crv, entities)
+        calls = self.add_entity_balances_for_tokens(calls, "wbtc", wbtc, entities)
+        calls = self.add_entity_balances_for_tokens(calls, "wMATIC", wMATIC, entities)
+
+        return calls
+
+    def confirm_harvest_state(self, before, after, tx):
+        key = "Harvest"
+        if key in tx.events:
+            event = tx.events[key][0]
+            keys = [
+                "harvested",
+            ]
+            for key in keys:
+                assert key in event
+
+            console.print("[blue]== harvest() Harvest State ==[/blue]")
+            self.printState(event, keys)
+
+        key = "TreeDistribution"
+        if key in tx.events:
+            event = tx.events[key][0]
+            keys = [
+                "token",
+                "amount",
+            ]
+            for key in keys:
+                assert key in event
+
+            console.print("[blue]== harvest() TreeDistribution State ==[/blue]")
+            self.printState(event, keys)
+
+    def printState(self, event, keys):
+        for key in keys:
+            print(key, ": ", event[key])
+

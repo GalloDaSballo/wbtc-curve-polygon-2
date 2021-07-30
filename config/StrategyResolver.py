@@ -129,6 +129,24 @@ class StrategyResolver(StrategyCoreResolver):
             console.print("[blue]== harvest() TreeDistribution State ==[/blue]")
             self.printState(event, keys)
 
+            # If crv is harvested, it is distributed to the tree
+            assert after.balances("crv", "badgerTree") > before.balances(
+                "crv", "badgerTree"
+            )
+            # All crv harvested (after fees) is sent to the tree
+            assert (
+                after.balances("crv", "badgerTree") - before.balances("crv", "badgerTree") ==
+                event["amount"]
+            )
+            # Governance rewards fees are charged
+            assert after.balances("crv", "governanceRewards") > before.balances(
+                "crv", "governanceRewards"
+            )
+            # Strategist rewards fees are charged
+            assert after.balances("crv", "strategist") > before.balances(
+                "crv", "strategist"
+            )
+
     def printState(self, event, keys):
         for key in keys:
             print(key, ": ", event[key])

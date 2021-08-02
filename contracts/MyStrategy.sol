@@ -166,35 +166,34 @@ contract MyStrategy is BaseStrategy {
         // Get total rewards (WMATIC & CRV)
         uint256 rewardsAmount = IERC20Upgradeable(reward).balanceOf(address(this));
         uint256 crvAmount = IERC20Upgradeable(CRV_TOKEN).balanceOf(address(this));
-        
+
         // If no reward, then no-op
         if (rewardsAmount == 0 && crvAmount == 0) {
             return 0;
         }
 
-        // Send CRV rewards to BadgerTree
+        // Process CRV rewards if existing
         if (crvAmount > 0) {
-            IERC20Upgradeable(CRV_TOKEN).safeTransfer(badgerTree, crvAmount);
-            emit TreeDistribution(CRV_TOKEN, crvAmount, block.number, block.timestamp);
+            // Process fees on CRV Rewards
+            _processRewardsFees(crvAmount, CRV_TOKEN);
+
+            // Transfer balance of CRV to the Badger Tree
+            uint256 crvBalance = IERC20Upgradeable(CRV_TOKEN).balanceOf(address(this));
+            IERC20Upgradeable(CRV_TOKEN).safeTransfer(badgerTree, crvBalance);
+
+            emit TreeDistribution(CRV_TOKEN, crvBalance, block.number, block.timestamp);
         }
 
         // We want to swap rewards (WMATIC) to WBTC and then add liquidity to wBTC-renBTC pool by depositing wBTC
 
-        // Swap WMATIC to WETH
+        // Swap WMATIC to wBTC
         if (rewardsAmount > 0) {
-            address[] memory path = new address[](2);
-            path[0] = reward; 
+            address[] memory path = new address[](3);
+            path[0] = reward;
             path[1] = wETH_TOKEN;
+            path[2] = wBTC_TOKEN;
             IUniswapRouterV2(QUICKSWAP_ROUTER).swapExactTokensForTokens(rewardsAmount, 0, path, address(this), now);
         }
-
-        // Swap WETH to WBTC
-        uint256 wethAmount = IERC20Upgradeable(wETH_TOKEN).balanceOf(address(this));
-        address[] memory path = new address[](2);
-            path[0] = wETH_TOKEN;
-            path[1] = wBTC_TOKEN;
-            IUniswapRouterV2(QUICKSWAP_ROUTER).swapExactTokensForTokens(wethAmount, 0, path, address(this), now);
-
 
         // Add liquidity for wBTC-renBTC pool by depositing wBTC
         ICurveStableSwapREN(CURVE_RENBTC_POOL).add_liquidity(
@@ -234,5 +233,12 @@ contract MyStrategy is BaseStrategy {
         governancePerformanceFee = _processFee(want, _amount, performanceFeeGovernance, IController(controller).rewards());
 
         strategistPerformanceFee = _processFee(want, _amount, performanceFeeStrategist, strategist);
+    }
+
+    /// @dev used to manage the governance and strategist fee on earned rewards, make sure to use it to get paid!
+    function _processRewardsFees(uint256 _amount, address token) internal returns (uint256 governanceRewardsFee, uint256 strategistRewardsFee) {
+        governanceRewardsFee = _processFee(token, _amount, performanceFeeGovernance, IController(controller).rewards());
+
+        strategistRewardsFee = _processFee(token, _amount, performanceFeeStrategist, strategist);
     }
 }

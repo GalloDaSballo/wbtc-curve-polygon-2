@@ -29,9 +29,6 @@ contract MyStrategy is BaseStrategy {
     address public lpComponent; // Token we provide liquidity with
     address public reward; // Token we farm and swap to want / lpComponent
 
-    address public reward_crv; // Token we farm and swap to want
-    address public reward_wmatic; // Token we farm and swap to want
-
     address public constant wETH_TOKEN = 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619;
     address public constant renBTC_TOKEN = 0xDBf31dF14B66535aF65AaC99C32e9eA844e14501;
     address public constant wBTC_TOKEN = 0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6;
@@ -107,10 +104,13 @@ contract MyStrategy is BaseStrategy {
     // TODO: update lpcomponent
     // @dev These are the tokens that cannot be moved except by the vault
     function getProtectedTokens() public override view returns (address[] memory) {
-        address[] memory protectedTokens = new address[](3);
+        address[] memory protectedTokens = new address[](5);
         protectedTokens[0] = want;
         protectedTokens[1] = lpComponent;
         protectedTokens[2] = reward;
+
+        protectedTokens[3] = CRV_TOKEN;
+        protectedTokens[4] = wBTC_TOKEN;
         return protectedTokens;
     }
 

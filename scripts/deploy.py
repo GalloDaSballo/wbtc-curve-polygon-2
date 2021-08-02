@@ -80,7 +80,7 @@ def deploy():
     controller.setStrategy(WANT, strategy, {"from": deployer})
 
     # Quickswap some tokens here
-    router = Contract.from_explorer(
+    router = interface.IUniswapRouterV2(
         "0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff")
 
     WBTC = "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6"
@@ -100,7 +100,7 @@ def deploy():
     )
 
     # CURVE_RENBTC_POOL
-    pool = Contract.from_explorer("0xC2d95EEF97Ec6C17551d45e77B590dc1F9117C67")
+    pool = interface.ICurveStableSwapREN("0xC2d95EEF97Ec6C17551d45e77B590dc1F9117C67")
     wbtc.approve("0xC2d95EEF97Ec6C17551d45e77B590dc1F9117C67",
                  999999999999999999999999999999, {"from": deployer})
 

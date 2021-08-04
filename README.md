@@ -137,17 +137,17 @@ Set these up in `/config/__init__.py` this mix will automatically be set up for 
 [`contracts/MyStrategy.sol`](contracts/MyStrategy.sol) is where you implement your own logic for your strategy. In particular:
 
 * Customize the `initialize` Method
-* Set a name in `MyStrategy.getName()`
-* Set a version in `MyStrategy.version()`
-* Write a way to calculate the want invested in `MyStrategy.balanceOfPool()`
-* Write a method that returns true if the Strategy should be tended in `MyStrategy.isTendable()`
-* Set a version in `MyStrategy.version()`
-* Invest your want tokens via `Strategy._deposit()`.
-* Take profits and repay debt via `Strategy.harvest()`.
-* Unwind enough of your position to payback withdrawals via `Strategy._withdrawSome()`.
-* Unwind all of your positions via `Strategy._withdrawAll()`.
-* Rebalance the Strategy positions via `Strategy.tend()`.
-* Make a list of all position tokens that should be protected against movements via `Strategy.protectedTokens()`.
+* Set a name in `StrategyCurveBadgerWBtcRenBtc.getName()`
+* Set a version in `StrategyCurveBadgerWBtcRenBtc.version()`
+* Write a way to calculate the want invested in `StrategyCurveBadgerWBtcRenBtc.balanceOfPool()`
+* Write a method that returns true if the Strategy should be tended in `StrategyCurveBadgerWBtcRenBtc.isTendable()`
+* Set a version in `StrategyCurveBadgerWBtcRenBtc.version()`
+* Invest your want tokens via `StrategyCurveBadgerWBtcRenBtc._deposit()`.
+* Take profits and repay debt via `StrategyCurveBadgerWBtcRenBtc.harvest()`.
+* Unwind enough of your position to payback withdrawals via `StrategyCurveBadgerWBtcRenBtc._withdrawSome()`.
+* Unwind all of your positions via `StrategyCurveBadgerWBtcRenBtc._withdrawAll()`.
+* Rebalance the Strategy positions via `StrategyCurveBadgerWBtcRenBtc.tend()`.
+* Make a list of all position tokens that should be protected against movements via `StrategyCurveBadgerWBtcRenBtc.protectedTokens()`.
 
 ## Specifying checks for ordinary operations in config/StrategyResolver
 In order to snapshot certain balances, we use the Snapshot manager.

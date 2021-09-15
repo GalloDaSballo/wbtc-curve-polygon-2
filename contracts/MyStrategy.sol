@@ -18,7 +18,7 @@ import {
     BaseStrategy
 } from "../deps/BaseStrategy.sol";
 
-contract MyStrategy is BaseStrategy {
+contract StrategyCurveBadgerWBtcRenBtc is BaseStrategy {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using AddressUpgradeable for address;
     using SafeMathUpgradeable for uint256;
@@ -83,7 +83,7 @@ contract MyStrategy is BaseStrategy {
 
     // @dev Specify the name of the strategy
     function getName() external override pure returns (string memory) {
-        return "wBTC-renBTC-Curve-Polygon-Rewards";
+        return "StrategyCurveBadgerWBtcRenBtc";
     }
 
     // @dev Specify the version of the Strategy, for upgrades
